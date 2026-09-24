@@ -7,15 +7,13 @@ readonly TEMPLATE_URL="${TEMPLATE_URL:-https://download.proxmox.com/images/syste
 CT_ID="${CT_ID:-}"
 CT_HOSTNAME="${CT_HOSTNAME:-printguard}"
 CT_STORAGE="${CT_STORAGE:-local-lvm}"
-CT_DISK_GB="${CT_DISK_GB:-32}"
+CT_DISK_GB="${CT_DISK_GB:-12}"
 CT_MEMORY_MB="${CT_MEMORY_MB:-4096}"
-CT_SWAP_MB="${CT_SWAP_MB:-512}"
-CT_CORES="${CT_CORES:-2}"
+CT_CORES="${CT_CORES:-4}"
 CT_BRIDGE="${CT_BRIDGE:-vmbr0}"
 CT_IP="${CT_IP:-}"
 CT_GATEWAY="${CT_GATEWAY:-}"
 CT_DNS="${CT_DNS:-1.1.1.1}"
-CT_PASSWORD="${CT_PASSWORD:-}"
 
 die() {
   printf 'ERROR: %s\n' "$1" >&2
@@ -32,16 +30,6 @@ prompt_default() {
   local answer
   read -r -p "$prompt [$default_value]: " answer
   printf '%s' "${answer:-$default_value}"
-}
-
-prompt_secret() {
-  local answer
-  while [[ -z "$CT_PASSWORD" ]]; do
-    read -r -s -p 'Container root password: ' answer
-    printf '\n'
-    [[ -n "$answer" ]] || printf 'Password cannot be empty.\n' >&2
-    CT_PASSWORD="$answer"
-  done
 }
 
 validate_number() {
@@ -68,7 +56,6 @@ collect_values() {
     CT_STORAGE="$(prompt_default 'Root disk storage' "$CT_STORAGE")"
     CT_DISK_GB="$(prompt_default 'Root disk size in GiB' "$CT_DISK_GB")"
     CT_MEMORY_MB="$(prompt_default 'Memory in MiB' "$CT_MEMORY_MB")"
-    CT_SWAP_MB="$(prompt_default 'Swap in MiB' "$CT_SWAP_MB")"
     CT_CORES="$(prompt_default 'CPU cores' "$CT_CORES")"
     CT_BRIDGE="$(prompt_default 'Network bridge' "$CT_BRIDGE")"
     CT_IP="$(prompt_default 'IPv4 address' "${CT_IP:-dhcp}")"
@@ -77,14 +64,12 @@ collect_values() {
     fi
     CT_DNS="$(prompt_default 'DNS server' "$CT_DNS")"
   fi
-  prompt_secret
 }
 
 validate_values() {
   validate_number 'CT_ID' "$CT_ID"
   validate_number 'CT_DISK_GB' "$CT_DISK_GB"
   validate_number 'CT_MEMORY_MB' "$CT_MEMORY_MB"
-  validate_number 'CT_SWAP_MB' "$CT_SWAP_MB"
   validate_number 'CT_CORES' "$CT_CORES"
   validate_ip_config
   (( CT_ID >= 100 && CT_ID <= 999999999 )) || die 'CT_ID must be between 100 and 999999999'
@@ -119,11 +104,10 @@ create_container() {
 
   pct create "$CT_ID" "$template_path" \
     --hostname "$CT_HOSTNAME" \
-    --password "$CT_PASSWORD" \
     --storage "$CT_STORAGE" \
     --rootfs "${CT_STORAGE}:${CT_DISK_GB}" \
     --memory "$CT_MEMORY_MB" \
-    --swap "$CT_SWAP_MB" \
+    --swap 0 \
     --cores "$CT_CORES" \
     --net0 "name=eth0,bridge=${CT_BRIDGE},ip=${CT_IP}${CT_GATEWAY:+,gw=${CT_GATEWAY}}" \
     --nameserver "$CT_DNS" \

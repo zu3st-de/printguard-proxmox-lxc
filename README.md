@@ -31,7 +31,7 @@ Run the community installer on the Proxmox host as `root`:
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/zu3st-de/printguard-proxmox-lxc/main/printguard.sh)"
 ```
 
-The script asks Proxmox for the next free CT ID, then asks for the hostname, storage, network bridge, IP configuration and resource limits. Set `CT_ID` explicitly when you need a specific ID. It prints the PrintGuard URL when the installation completes.
+The script asks Proxmox for the next free CT ID, then asks for the hostname, storage, network bridge, IP configuration and resource limits. Defaults are a 12 GiB disk, 4 CPU cores, 4 GiB RAM and no swap. No root password is set. Set `CT_ID` explicitly when you need a specific ID. It prints the PrintGuard URL when the installation completes.
 
 To inspect the script before running it:
 
@@ -45,7 +45,7 @@ chmod +x printguard.sh
 For a non-interactive run, set the variables before invoking the script:
 
 ```bash
-CT_ID="$(pvesh get /cluster/nextid)" CT_HOSTNAME=printguard CT_STORAGE=local-lvm CT_DISK_GB=32 CT_MEMORY_MB=4096 CT_CORES=2 CT_IP=dhcp ./printguard.sh
+CT_ID="$(pvesh get /cluster/nextid)" CT_HOSTNAME=printguard CT_STORAGE=local-lvm CT_DISK_GB=12 CT_MEMORY_MB=4096 CT_CORES=4 CT_IP=dhcp ./printguard.sh
 ```
 
 ## Access
