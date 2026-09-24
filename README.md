@@ -45,7 +45,7 @@ chmod +x printguard.sh
 For a non-interactive run, set the variables before invoking the script:
 
 ```bash
-CT_ID=220 CT_HOSTNAME=printguard CT_STORAGE=local-lvm CT_DISK_GB=32 CT_MEMORY_MB=4096 CT_CORES=2 CT_IP=dhcp ./printguard.sh
+CT_ID="$(pvesh get /cluster/nextid)" CT_HOSTNAME=printguard CT_STORAGE=local-lvm CT_DISK_GB=32 CT_MEMORY_MB=4096 CT_CORES=2 CT_IP=dhcp ./printguard.sh
 ```
 
 ## Access
