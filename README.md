@@ -25,15 +25,22 @@ The script is intended to run on a Proxmox VE host as `root`.
 
 ## Installation
 
-Download and run the script on the Proxmox host:
+Run the community installer on the Proxmox host as `root`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/zu3st-de/printguard-proxmox-lxc/main/create-printguard-lxc.sh -o create-printguard-lxc.sh
-chmod +x create-printguard-lxc.sh
-./create-printguard-lxc.sh
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/zu3st-de/printguard-proxmox-lxc/main/create-printguard-lxc.sh)"
 ```
 
 The script asks for the CT ID, hostname, storage, network bridge, IP configuration and resource limits. It prints the PrintGuard URL when the installation completes.
+
+To inspect the script before running it:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/zu3st-de/printguard-proxmox-lxc/main/create-printguard-lxc.sh -o create-printguard-lxc.sh
+less create-printguard-lxc.sh
+chmod +x create-printguard-lxc.sh
+./create-printguard-lxc.sh
+```
 
 For a non-interactive run, set the variables before invoking the script:
 
