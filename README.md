@@ -31,7 +31,7 @@ Run the community installer on the Proxmox host as `root`:
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/zu3st-de/printguard-proxmox-lxc/main/printguard.sh)"
 ```
 
-The script asks for the CT ID, hostname, storage, network bridge, IP configuration and resource limits. It prints the PrintGuard URL when the installation completes.
+The script asks Proxmox for the next free CT ID, then asks for the hostname, storage, network bridge, IP configuration and resource limits. Set `CT_ID` explicitly when you need a specific ID. It prints the PrintGuard URL when the installation completes.
 
 To inspect the script before running it:
 

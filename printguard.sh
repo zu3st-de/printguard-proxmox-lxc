@@ -57,9 +57,13 @@ validate_ip_config() {
   [[ -n "$CT_GATEWAY" ]] || die 'CT_GATEWAY is required for a static IP'
 }
 
+next_free_ct_id() {
+  pvesh get /cluster/nextid
+}
+
 collect_values() {
   if [[ -z "$CT_ID" ]]; then
-    CT_ID="$(prompt_default 'Container ID' '220')"
+    CT_ID="$(prompt_default 'Container ID' "$(next_free_ct_id)")"
     CT_HOSTNAME="$(prompt_default 'Hostname' "$CT_HOSTNAME")"
     CT_STORAGE="$(prompt_default 'Root disk storage' "$CT_STORAGE")"
     CT_DISK_GB="$(prompt_default 'Root disk size in GiB' "$CT_DISK_GB")"
@@ -175,6 +179,7 @@ main() {
   [[ "$(id -u)" -eq 0 ]] || die 'Run this script as root on a Proxmox VE host'
   require_command pct
   require_command pvesm
+  require_command pvesh
   require_command curl
   collect_values
   validate_values
