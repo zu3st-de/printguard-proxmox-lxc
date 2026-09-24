@@ -28,7 +28,7 @@ The script is intended to run on a Proxmox VE host as `root`.
 Download and run the script on the Proxmox host:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USER/printguard-proxmox-lxc/main/create-printguard-lxc.sh -o create-printguard-lxc.sh
+curl -fsSL https://raw.githubusercontent.com/zu3st-de/printguard-proxmox-lxc/main/create-printguard-lxc.sh -o create-printguard-lxc.sh
 chmod +x create-printguard-lxc.sh
 ./create-printguard-lxc.sh
 ```
