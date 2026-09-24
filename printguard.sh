@@ -2,11 +2,11 @@
 set -Eeuo pipefail
 
 readonly PRINTGUARD_IMAGE="${PRINTGUARD_IMAGE:-ghcr.io/oliverbravery/printguard:latest}"
-readonly TEMPLATE_URL="${TEMPLATE_URL:-https://download.proxmox.com/images/system/debian-12-standard_12.7-1_amd64.tar.zst}"
 
 CT_ID="${CT_ID:-}"
 CT_HOSTNAME="${CT_HOSTNAME:-printguard}"
 CT_STORAGE="${CT_STORAGE:-local-lvm}"
+CT_TEMPLATE_STORAGE="${CT_TEMPLATE_STORAGE:-local}"
 CT_DISK_GB="${CT_DISK_GB:-12}"
 CT_MEMORY_MB="${CT_MEMORY_MB:-4096}"
 CT_CORES="${CT_CORES:-4}"
@@ -54,6 +54,7 @@ collect_values() {
     CT_ID="$(prompt_default 'Container ID' "$(next_free_ct_id)")"
     CT_HOSTNAME="$(prompt_default 'Hostname' "$CT_HOSTNAME")"
     CT_STORAGE="$(prompt_default 'Root disk storage' "$CT_STORAGE")"
+    CT_TEMPLATE_STORAGE="$(prompt_default 'Template storage' "$CT_TEMPLATE_STORAGE")"
     CT_DISK_GB="$(prompt_default 'Root disk size in GiB' "$CT_DISK_GB")"
     CT_MEMORY_MB="$(prompt_default 'Memory in MiB' "$CT_MEMORY_MB")"
     CT_CORES="$(prompt_default 'CPU cores' "$CT_CORES")"
@@ -79,13 +80,15 @@ validate_values() {
 }
 
 download_template() {
-  local template_path="/var/lib/vz/template/cache/${TEMPLATE_URL##*/}"
-  mkdir -p "$(dirname "$template_path")"
-  if [[ ! -f "$template_path" ]]; then
-    printf 'Downloading Debian template...\n' >&2
-    curl --fail --location --progress-bar "$TEMPLATE_URL" --output "$template_path"
+  local template_name
+  pveam update >/dev/null
+  template_name="$(pveam available --section system | awk '$1 == "system" && $2 ~ /^debian-12-standard_.*_amd64\.tar\.zst$/ { print $2 }' | sort -V | tail -n 1)"
+  [[ -n "$template_name" ]] || die 'No Debian 12 amd64 LXC template is available from Proxmox'
+  if ! pvesm path "${CT_TEMPLATE_STORAGE}:vztmpl/${template_name}" >/dev/null 2>&1; then
+    printf 'Downloading latest Debian 12 template: %s\n' "$template_name" >&2
+    pveam download "$CT_TEMPLATE_STORAGE" "$template_name"
   fi
-  printf '%s' "$template_path"
+  printf '%s:vztmpl/%s' "$CT_TEMPLATE_STORAGE" "$template_name"
 }
 
 wait_for_container() {
@@ -101,6 +104,7 @@ create_container() {
   local template_path="$1"
   pct status "$CT_ID" >/dev/null 2>&1 && die "Container ID $CT_ID already exists"
   pvesm status --storage "$CT_STORAGE" >/dev/null 2>&1 || die "Storage is not available: $CT_STORAGE"
+  pvesm status --storage "$CT_TEMPLATE_STORAGE" >/dev/null 2>&1 || die "Template storage is not available: $CT_TEMPLATE_STORAGE"
 
   pct create "$CT_ID" "$template_path" \
     --hostname "$CT_HOSTNAME" \
@@ -164,7 +168,7 @@ main() {
   require_command pct
   require_command pvesm
   require_command pvesh
-  require_command curl
+  require_command pveam
   collect_values
   validate_values
   printf '\nCreating PrintGuard LXC %s (%s)...\n' "$CT_ID" "$CT_HOSTNAME"

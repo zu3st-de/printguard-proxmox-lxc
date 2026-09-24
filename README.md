@@ -18,7 +18,7 @@ The script is intended to run on a Proxmox VE host as `root`.
 ## Requirements
 
 - Proxmox VE 7 or newer with outbound internet access.
-- A Debian 12 LXC template available on the node.
+- A template storage with access to the Proxmox template catalog. The script selects and downloads the latest available Debian 12 amd64 LXC template automatically.
 - At least 2 CPU cores, 4 GiB RAM and 16 GiB disk recommended for a small setup. Actual requirements depend on the number of cameras and the selected inference workload.
 - A static IP or DHCP reservation is recommended.
 - Docker inside an LXC is convenient but has more kernel and device constraints than a VM. For production workloads, evaluate a VM if you need GPU acceleration or encounter device access limitations.
