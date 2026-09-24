@@ -32,6 +32,23 @@ prompt_default() {
   printf '%s' "${answer:-$default_value}"
 }
 
+run_step() {
+  local label="$1"
+  shift
+  local log_file
+  log_file="$(mktemp)"
+  printf '[*] %s... ' "$label"
+  if "$@" >"$log_file" 2>&1; then
+    printf 'done\n'
+    rm -f "$log_file"
+    return 0
+  fi
+  printf 'failed\n' >&2
+  cat "$log_file" >&2
+  rm -f "$log_file"
+  return 1
+}
+
 validate_number() {
   [[ "$2" =~ ^[0-9]+$ ]] || die "$1 must be a number"
 }
@@ -81,12 +98,11 @@ validate_values() {
 
 download_template() {
   local template_name
-  pveam update >/dev/null
+  run_step 'Updating Proxmox template catalog' pveam update >&2
   template_name="$(pveam available --section system | awk '$1 == "system" && $2 ~ /^debian-12-standard_.*_amd64\.tar\.zst$/ { print $2 }' | sort -V | tail -n 1)"
   [[ -n "$template_name" ]] || die 'No Debian 12 amd64 LXC template is available from Proxmox'
   if ! pvesm path "${CT_TEMPLATE_STORAGE}:vztmpl/${template_name}" >/dev/null 2>&1; then
-    printf 'Downloading latest Debian 12 template: %s\n' "$template_name" >&2
-    pveam download "$CT_TEMPLATE_STORAGE" "$template_name"
+    run_step "Downloading Debian template $template_name" pveam download "$CT_TEMPLATE_STORAGE" "$template_name" >&2
   fi
   printf '%s:vztmpl/%s' "$CT_TEMPLATE_STORAGE" "$template_name"
 }
@@ -106,7 +122,7 @@ create_container() {
   pvesm status --storage "$CT_STORAGE" >/dev/null 2>&1 || die "Storage is not available: $CT_STORAGE"
   pvesm status --storage "$CT_TEMPLATE_STORAGE" >/dev/null 2>&1 || die "Template storage is not available: $CT_TEMPLATE_STORAGE"
 
-  pct create "$CT_ID" "$template_path" \
+  run_step 'Creating LXC container' pct create "$CT_ID" "$template_path" \
     --hostname "$CT_HOSTNAME" \
     --storage "$CT_STORAGE" \
     --rootfs "${CT_STORAGE}:${CT_DISK_GB}" \
@@ -120,12 +136,15 @@ create_container() {
     --onboot 1 \
     --start 0
 
-  pct start "$CT_ID"
-  wait_for_container
+  run_step 'Starting LXC container' pct start "$CT_ID"
+  run_step 'Waiting for container' wait_for_container
 }
 
 install_printguard() {
-  pct exec "$CT_ID" -- bash -s -- "$PRINTGUARD_IMAGE" <<'CONTAINER_SCRIPT'
+  local log_file
+  log_file="$(mktemp)"
+  printf '[*] Installing Docker and PrintGuard... '
+  if pct exec "$CT_ID" -- bash -s -- "$PRINTGUARD_IMAGE" >"$log_file" 2>&1 <<'CONTAINER_SCRIPT'
 set -Eeuo pipefail
 printguard_image="$1"
 export DEBIAN_FRONTEND=noninteractive
@@ -161,6 +180,32 @@ docker compose -f /etc/printguard/compose.yaml up -d
 UPDATE_SCRIPT
 chmod 0755 /usr/local/sbin/update-printguard
 CONTAINER_SCRIPT
+  then
+    printf 'done\n'
+    rm -f "$log_file"
+    return 0
+  fi
+  printf 'failed\n' >&2
+  cat "$log_file" >&2
+  rm -f "$log_file"
+  return 1
+}
+
+container_ip() {
+  local address
+  if [[ "$CT_IP" != 'dhcp' ]]; then
+    printf '%s' "${CT_IP%/*}"
+    return
+  fi
+  for _ in {1..30}; do
+    address="$(pct exec "$CT_ID" -- hostname -I 2>/dev/null | awk '{print $1}')"
+    if [[ -n "$address" ]]; then
+      printf '%s' "$address"
+      return
+    fi
+    sleep 2
+  done
+  printf 'unknown'
 }
 
 main() {
@@ -171,18 +216,16 @@ main() {
   require_command pveam
   collect_values
   validate_values
-  printf '\nCreating PrintGuard LXC %s (%s)...\n' "$CT_ID" "$CT_HOSTNAME"
+  printf '\nPrintGuard LXC %s (%s)\n\n' "$CT_ID" "$CT_HOSTNAME"
   local template_path
   template_path="$(download_template)"
   create_container "$template_path"
   install_printguard
+  local address
+  address="$(container_ip)"
   printf '\nPrintGuard is ready.\n'
   printf 'Container: %s\n' "$CT_ID"
-  if [[ "$CT_IP" == 'dhcp' ]]; then
-    printf 'Dashboard: determine the DHCP address, then open http://<container-ip>:8000\n'
-  else
-    printf 'Dashboard: http://%s:8000\n' "${CT_IP%/*}"
-  fi
+  printf 'Dashboard: http://%s:8000\n' "$address"
 }
 
 main "$@"
