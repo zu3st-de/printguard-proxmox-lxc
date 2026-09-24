@@ -28,7 +28,7 @@ The script is intended to run on a Proxmox VE host as `root`.
 Run the community installer on the Proxmox host as `root`:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/zu3st-de/printguard-proxmox-lxc/main/create-printguard-lxc.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/zu3st-de/printguard-proxmox-lxc/main/printguard.sh)"
 ```
 
 The script asks for the CT ID, hostname, storage, network bridge, IP configuration and resource limits. It prints the PrintGuard URL when the installation completes.
@@ -36,16 +36,16 @@ The script asks for the CT ID, hostname, storage, network bridge, IP configurati
 To inspect the script before running it:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/zu3st-de/printguard-proxmox-lxc/main/create-printguard-lxc.sh -o create-printguard-lxc.sh
-less create-printguard-lxc.sh
-chmod +x create-printguard-lxc.sh
-./create-printguard-lxc.sh
+curl -fsSL https://raw.githubusercontent.com/zu3st-de/printguard-proxmox-lxc/main/printguard.sh -o printguard.sh
+less printguard.sh
+chmod +x printguard.sh
+./printguard.sh
 ```
 
 For a non-interactive run, set the variables before invoking the script:
 
 ```bash
-CT_ID=220 CT_HOSTNAME=printguard CT_STORAGE=local-lvm CT_DISK_GB=32 CT_MEMORY_MB=4096 CT_CORES=2 CT_IP=dhcp ./create-printguard-lxc.sh
+CT_ID=220 CT_HOSTNAME=printguard CT_STORAGE=local-lvm CT_DISK_GB=32 CT_MEMORY_MB=4096 CT_CORES=2 CT_IP=dhcp ./printguard.sh
 ```
 
 ## Access
