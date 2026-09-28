@@ -108,8 +108,7 @@ download_template() {
 }
 
 wait_for_container() {
-  local attempt
-  for attempt in {1..30}; do
+  for _ in {1..30}; do
     pct exec "$CT_ID" -- true >/dev/null 2>&1 && return
     sleep 2
   done
